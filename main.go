@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -57,17 +60,52 @@ func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
 			"views/_header.html",
 		))
 
+		// Get the value of <input> form
+		var name = r.FormValue("name")
+		var city = r.FormValue("city")
+
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		var name = r.FormValue("name")
-		var city = r.FormValue("city")
+		// Get the value of <input file> form
+		if err := r.ParseMultipartForm(1024); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		uploadedFile, handler, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer uploadedFile.Close()
+
+		dir, err := os.Getwd()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		filename := fmt.Sprintf("%s", handler.Filename)
+
+		fileLocation := filepath.Join(dir, "upload", filename)
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, uploadedFile); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		var data = map[string]string{
-			"name": name,
-			"city": city,
+			"name":     name,
+			"city":     city,
+			"fileLink": fileLocation,
 		}
 
 		if err := tmpl.Execute(w, data); err != nil {
