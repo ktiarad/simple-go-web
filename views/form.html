@@ -1,0 +1,22 @@
+{{define "form"}}
+<!DOCTYPE html>
+    <head>
+        {{template "_header"}}
+    </head>
+    <body>
+        <p>Form</p>
+        <p>Please fill this form</p>
+        <form method="POST" action="/process">
+            <label>Name : </label>
+            <input type="text" placeholder="Type name here" name="name" required>
+            <br />
+
+            <label>City : </label>
+            <input type="text" placeholder="Type city here" name="city" required>
+            <br />
+
+            <input type="submit" name="submit" value="Submit">
+        </form>
+    </body>
+</html>
+{{end}}
