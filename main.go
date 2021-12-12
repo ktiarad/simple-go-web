@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"html/template"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func main() {
@@ -88,9 +90,11 @@ func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Rename filename
 		filename := fmt.Sprintf("%s", handler.Filename)
+		newFilename := fmt.Sprintf("%s%s", renameFile(filename), filepath.Ext(handler.Filename))
 
-		fileLocation := filepath.Join(dir, "upload", filename)
+		fileLocation := filepath.Join(dir, "upload", newFilename)
 		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,4 +119,15 @@ func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
 
 		http.Error(w, "", http.StatusBadRequest)
 	}
+}
+
+func renameFile(filename string) string {
+	var salt = fmt.Sprintf("%d", time.Now().UnixNano())
+	var salted = fmt.Sprintf("%s%s", filename, salt)
+
+	var sha = sha1.New()
+	sha.Write([]byte(salted))
+	var newFilename = sha.Sum(nil)
+
+	return fmt.Sprintf("%x", newFilename)
 }
