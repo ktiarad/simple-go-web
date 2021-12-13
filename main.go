@@ -16,6 +16,7 @@ func main() {
 	http.HandleFunc("/", handlerIndex)
 	http.HandleFunc("/form", handlerForm)
 	http.HandleFunc("/process", routeSubmitPost)
+	http.HandleFunc("/download", handlerDownload)
 	http.Handle("/static/",
 		http.StripPrefix("/static/",
 			http.FileServer(http.Dir(http.Dir("assets")))))
@@ -109,7 +110,7 @@ func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
 		var data = map[string]string{
 			"name":     name,
 			"city":     city,
-			"fileLink": fileLocation,
+			"fileName": newFilename,
 		}
 
 		if err := tmpl.Execute(w, data); err != nil {
@@ -130,4 +131,33 @@ func renameFile(filename string) string {
 	var newFilename = sha.Sum(nil)
 
 	return fmt.Sprintf("%x", newFilename)
+}
+
+func handlerDownload(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	path := r.FormValue("file")
+	basePath, _ := os.Getwd()
+	fileLocation := filepath.Join(basePath, "upload", path)
+
+	f, err := os.Open(fileLocation)
+	if f != nil {
+		defer f.Close()
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentDisposition := fmt.Sprintf("attachment; filename=%s", f.Name())
+	w.Header().Set("Content-Disposition", contentDisposition)
+
+	if _, err := io.Copy(w, f); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
