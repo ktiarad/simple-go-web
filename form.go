@@ -82,7 +82,7 @@ func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
 			"city":     city,
 			"fileName": newFilename,
 		}
-
+		insertRow(data)
 		if err := tmpl.Execute(w, data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
